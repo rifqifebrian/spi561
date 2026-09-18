@@ -1,4 +1,4 @@
-# spi561
+# spi561: Comparative Political Economy of Development
 Comparative political economy of development between Vietnam, Malaysia, and Indonesia
 
 ## GDP growth analysis
