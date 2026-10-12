@@ -1,17 +1,24 @@
-# Bubble charts of ADB country Input-Output Tables (e.g. Viet Nam, Indonesia;
-# "<country>-tables-as-of-june-2023.xlsx"). The country name is read from the
-# sheet titles, so the same script works for any country workbook.
+# Bubble charts of ADB country Input-Output Tables (as of June 2023), e.g.
+# Indonesia, Malaysia, Thailand, Viet Nam ("<country>-tables-as-of-june-2023.xlsx").
 #
-# For every year in the workbook, draws the 35x35 inter-industry block as a
+# For every country and every year, draws the 35x35 inter-industry block as a
 # grid: y = supplying industry (row), x = purchasing industry (column), and a
 # circle at each cell whose AREA is proportional to the transaction value
-# ($ million, current prices).
+# ($ million, current prices). The country name is read from the sheet titles.
 #
 # Usage:
-#   Rscript scripts/io_bubble_charts.R <path/to/country-tables.xlsx> [out_dir] [--per-year-scale]
+#   Rscript scripts/io_bubble_charts.R <xlsx> [<xlsx> ...] [--out <dir>] [--per-year-scale | --shared-scale]
 #
-# By default every year shares one size scale, so circles are comparable
-# across years. Pass --per-year-scale to rescale each year to its own max.
+# Example (all four countries in one run):
+#   Rscript scripts/io_bubble_charts.R indonesia-tables-as-of-june-2023.xlsx \
+#     malaysia-tables-as-of-june-2023.xlsx thailand-tables-as-of-june-2023.xlsx \
+#     viet-nam-tables-as-of-june-2023.xlsx --out output/io_bubble_charts
+#
+# Size scale (circle size -> value):
+#   default           one scale per country, shared by all its years
+#   --per-year-scale  each chart scaled to its own maximum
+#   --shared-scale    one scale for every country and year, so circles are
+#                     comparable across countries too
 #
 # Requires: readxl, ggplot2  (install.packages(c("readxl", "ggplot2")))
 
@@ -20,14 +27,23 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
+usage <- "Usage: Rscript io_bubble_charts.R <xlsx> [<xlsx> ...] [--out <dir>] [--per-year-scale | --shared-scale]"
 args <- commandArgs(trailingOnly = TRUE)
 per_year_scale <- "--per-year-scale" %in% args
-args <- setdiff(args, "--per-year-scale")
-if (length(args) < 1) {
-  stop("Usage: Rscript io_bubble_charts.R <xlsx> [out_dir] [--per-year-scale]")
+shared_scale <- "--shared-scale" %in% args
+if (per_year_scale && shared_scale) stop("Use only one of --per-year-scale and --shared-scale")
+args <- setdiff(args, c("--per-year-scale", "--shared-scale"))
+out_dir <- "output/io_bubble_charts"
+out_flag <- which(args == "--out")
+if (length(out_flag) == 1) {
+  if (out_flag == length(args)) stop(usage)
+  out_dir <- args[out_flag + 1]
+  args <- args[-c(out_flag, out_flag + 1)]
 }
-xlsx_path <- args[1]
-out_dir <- if (length(args) >= 2) args[2] else "output/io_bubble_charts"
+xlsx_paths <- args
+if (length(xlsx_paths) < 1) stop(usage)
+missing <- xlsx_paths[!file.exists(xlsx_paths)]
+if (length(missing) > 0) stop("File not found: ", toString(missing))
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 # Short labels for the 35 ADB MRIO sectors (c1..c35), in table order.
@@ -45,19 +61,39 @@ short_names <- c(
 codes <- paste0("c", 1:35)
 labels <- paste0(short_names, " (", codes, ")")
 
-# Layout of each "Table 1.x" sheet (verified for all 17 sheets):
+read_range <- function(path, sheet, range) {
+  read_excel(path, sheet = sheet, range = range, col_names = FALSE,
+             .name_repair = "minimal")
+}
+last_year <- function(x) as.integer(sub(".*(\\d{4})\\s*$", "\\1", x))
+
+# Sheet -> year from the "Table of Contents" sheet (columns C and D). Used in
+# preference to the sheet titles, which contain typos (e.g. Thailand's
+# 2022 sheet is titled "..., 2023").
+read_toc_years <- function(path) {
+  toc <- read_range(path, "Table of Contents", "C1:D60")
+  toc <- toc[!is.na(toc[[2]]) & grepl("^Table 1\\.\\d+$", toc[[2]]), ]
+  setNames(last_year(toc[[1]]), toc[[2]])
+}
+
+# Layout of each "Table 1.x" sheet (verified for all four countries):
 #   A1      title "Table 1.x: <Country> Input-Output Table (35x35), <year>"
 #   row 7-41, col C-AK  the 35x35 intermediate-use block
-read_year <- function(sheet) {
-  title <- read_excel(xlsx_path, sheet = sheet, range = "A1", col_names = FALSE, .name_repair = "minimal")[[1]]
-  year <- as.integer(sub(".*(\\d{4})\\s*$", "\\1", title))
+read_year <- function(path, sheet, toc_year) {
+  title <- read_range(path, sheet, "A1")[[1]]
   country <- sub("^[^:]*:\\s*(.*?)\\s+Input-Output Table.*$", "\\1", title, perl = TRUE)
-  row_codes <- read_excel(xlsx_path, sheet = sheet, range = "B7:B41", col_names = FALSE, .name_repair = "minimal")[[1]]
-  col_codes <- unlist(read_excel(xlsx_path, sheet = sheet, range = "C6:AK6", col_names = FALSE, .name_repair = "minimal"))
-  if (!identical(row_codes, codes) || !identical(unname(col_codes), codes)) {
-    stop("Unexpected layout in sheet '", sheet, "'")
+  title_year <- last_year(title)
+  year <- if (is.na(toc_year)) title_year else toc_year
+  if (!identical(year, title_year)) {
+    message("Note: ", basename(path), " '", sheet, "' title says ", title_year,
+            "; using ", year, " from the Table of Contents")
   }
-  m <- as.matrix(read_excel(xlsx_path, sheet = sheet, range = "C7:AK41", col_names = FALSE, .name_repair = "minimal"))
+  row_codes <- read_range(path, sheet, "B7:B41")[[1]]
+  col_codes <- unlist(read_range(path, sheet, "C6:AK6"))
+  if (!identical(row_codes, codes) || !identical(unname(col_codes), codes)) {
+    stop("Unexpected layout in ", basename(path), " sheet '", sheet, "'")
+  }
+  m <- as.matrix(read_range(path, sheet, "C7:AK41"))
   data.frame(
     country = country,
     year = year,
@@ -67,19 +103,33 @@ read_year <- function(sheet) {
   )
 }
 
-sheets <- grep("^Table 1\\.\\d+$", excel_sheets(xlsx_path), value = TRUE)
-io <- do.call(rbind, lapply(sheets, read_year))
-io <- io[order(io$year), ]
-country <- unique(io$country)
-if (length(country) != 1) stop("Expected one country per workbook, found: ", toString(country))
-file_prefix <- paste0("io_bubble_", gsub("[^a-z0-9]+", "_", tolower(country)), "_")
-write.csv(io, file.path(out_dir, paste0(file_prefix, "long.csv")), row.names = FALSE)
+read_workbook <- function(path) {
+  toc_years <- read_toc_years(path)
+  sheets <- grep("^Table 1\\.\\d+$", excel_sheets(path), value = TRUE)
+  years <- unname(toc_years[sheets])
+  if (anyDuplicated(years[!is.na(years)])) stop("Duplicate years in ", basename(path))
+  d <- do.call(rbind, Map(function(s, y) read_year(path, s, y), sheets, years))
+  if (length(unique(d$country)) != 1) {
+    stop("Expected one country per workbook in ", basename(path), ", found: ",
+         toString(unique(d$country)))
+  }
+  d[order(d$year), ]
+}
 
-global_max <- max(io$value, na.rm = TRUE)
+io <- do.call(rbind, lapply(xlsx_paths, read_workbook))
+rownames(io) <- NULL
+all_max <- max(io$value, na.rm = TRUE)
 
-plot_year <- function(d) {
+scale_note <- if (per_year_scale) {
+  "."
+} else if (shared_scale) {
+  "; same scale for all countries and years."
+} else {
+  "; same scale for all years."
+}
+
+plot_year <- function(d, limit) {
   d <- d[!is.na(d$value) & d$value > 0, ]
-  limit <- if (per_year_scale) max(d$value) else global_max
   ggplot(d, aes(x = to, y = from, size = value)) +
     geom_point(shape = 21, fill = "#2a78d6", colour = "white",
                stroke = 0.3, alpha = 0.85) +
@@ -91,13 +141,14 @@ plot_year <- function(d) {
     scale_y_discrete(drop = FALSE, limits = rev) +
     coord_fixed() +
     labs(
-      title = paste0(country, " Input-Output Table, ", d$year[1]),
+      title = paste0(d$country[1], " Input-Output Table, ", d$year[1]),
       subtitle = paste0("Intermediate transactions between industries ",
                         "(current prices, $ million). Circle area = value",
-                        if (!per_year_scale) "; same scale for all years." else "."),
+                        scale_note),
       x = "Purchasing industry (column)",
       y = "Supplying industry (row)",
-      caption = paste0("Source: ADB, ", country, " Input-Output Tables (as of June 2023)")
+      caption = paste0("Source: ADB, ", d$country[1],
+                       " Input-Output Tables (as of June 2023)")
     ) +
     theme_minimal(base_size = 10) +
     theme(
@@ -109,17 +160,34 @@ plot_year <- function(d) {
     )
 }
 
-plots <- lapply(split(io, io$year), plot_year)
+for (cd in split(io, io$country)) {
+  country <- cd$country[1]
+  file_prefix <- paste0("io_bubble_", gsub("[^a-z0-9]+", "_", tolower(country)), "_")
+  write.csv(cd, file.path(out_dir, paste0(file_prefix, "long.csv")), row.names = FALSE)
 
-for (p in plots) {
-  yr <- p$data$year[1]
-  ggsave(file.path(out_dir, paste0(file_prefix, yr, ".png")), p,
-         width = 13, height = 12, dpi = 150)
+  country_max <- max(cd$value, na.rm = TRUE)
+  plots <- lapply(split(cd, cd$year), function(d) {
+    limit <- if (per_year_scale) {
+      max(d$value, na.rm = TRUE)
+    } else if (shared_scale) {
+      all_max
+    } else {
+      country_max
+    }
+    plot_year(d, limit)
+  })
+
+  for (p in plots) {
+    ggsave(file.path(out_dir, paste0(file_prefix, p$data$year[1], ".png")), p,
+           width = 13, height = 12, dpi = 150)
+  }
+
+  # All years of this country in one PDF, one page per year.
+  pdf(file.path(out_dir, paste0(file_prefix, "all_years.pdf")), width = 13, height = 12)
+  invisible(lapply(plots, print))
+  invisible(dev.off())
+
+  message("Wrote ", length(plots), " ", country, " charts")
 }
 
-# All years in one PDF, one page per year.
-pdf(file.path(out_dir, paste0(file_prefix, "all_years.pdf")), width = 13, height = 12)
-invisible(lapply(plots, print))
-invisible(dev.off())
-
-message("Wrote ", length(plots), " ", country, " charts to ", normalizePath(out_dir))
+message("Output folder: ", normalizePath(out_dir))
