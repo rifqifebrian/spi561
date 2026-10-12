@@ -1,4 +1,6 @@
-# Bubble charts of the Viet Nam Input-Output Tables (ADB, as of June 2023).
+# Bubble charts of ADB country Input-Output Tables (e.g. Viet Nam, Indonesia;
+# "<country>-tables-as-of-june-2023.xlsx"). The country name is read from the
+# sheet titles, so the same script works for any country workbook.
 #
 # For every year in the workbook, draws the 35x35 inter-industry block as a
 # grid: y = supplying industry (row), x = purchasing industry (column), and a
@@ -6,7 +8,7 @@
 # ($ million, current prices).
 #
 # Usage:
-#   Rscript scripts/io_bubble_charts.R <path/to/viet-nam-tables.xlsx> [out_dir] [--per-year-scale]
+#   Rscript scripts/io_bubble_charts.R <path/to/country-tables.xlsx> [out_dir] [--per-year-scale]
 #
 # By default every year shares one size scale, so circles are comparable
 # across years. Pass --per-year-scale to rescale each year to its own max.
@@ -44,11 +46,12 @@ codes <- paste0("c", 1:35)
 labels <- paste0(short_names, " (", codes, ")")
 
 # Layout of each "Table 1.x" sheet (verified for all 17 sheets):
-#   A1      title ending in the year
+#   A1      title "Table 1.x: <Country> Input-Output Table (35x35), <year>"
 #   row 7-41, col C-AK  the 35x35 intermediate-use block
 read_year <- function(sheet) {
   title <- read_excel(xlsx_path, sheet = sheet, range = "A1", col_names = FALSE, .name_repair = "minimal")[[1]]
   year <- as.integer(sub(".*(\\d{4})\\s*$", "\\1", title))
+  country <- sub("^[^:]*:\\s*(.*?)\\s+Input-Output Table.*$", "\\1", title, perl = TRUE)
   row_codes <- read_excel(xlsx_path, sheet = sheet, range = "B7:B41", col_names = FALSE, .name_repair = "minimal")[[1]]
   col_codes <- unlist(read_excel(xlsx_path, sheet = sheet, range = "C6:AK6", col_names = FALSE, .name_repair = "minimal"))
   if (!identical(row_codes, codes) || !identical(unname(col_codes), codes)) {
@@ -56,6 +59,7 @@ read_year <- function(sheet) {
   }
   m <- as.matrix(read_excel(xlsx_path, sheet = sheet, range = "C7:AK41", col_names = FALSE, .name_repair = "minimal"))
   data.frame(
+    country = country,
     year = year,
     from = factor(rep(codes, times = 35), levels = codes, labels = labels),
     to = factor(rep(codes, each = 35), levels = codes, labels = labels),
@@ -66,7 +70,10 @@ read_year <- function(sheet) {
 sheets <- grep("^Table 1\\.\\d+$", excel_sheets(xlsx_path), value = TRUE)
 io <- do.call(rbind, lapply(sheets, read_year))
 io <- io[order(io$year), ]
-write.csv(io, file.path(out_dir, "io_long.csv"), row.names = FALSE)
+country <- unique(io$country)
+if (length(country) != 1) stop("Expected one country per workbook, found: ", toString(country))
+file_prefix <- paste0("io_bubble_", gsub("[^a-z0-9]+", "_", tolower(country)), "_")
+write.csv(io, file.path(out_dir, paste0(file_prefix, "long.csv")), row.names = FALSE)
 
 global_max <- max(io$value, na.rm = TRUE)
 
@@ -84,13 +91,13 @@ plot_year <- function(d) {
     scale_y_discrete(drop = FALSE, limits = rev) +
     coord_fixed() +
     labs(
-      title = paste0("Viet Nam Input-Output Table, ", d$year[1]),
+      title = paste0(country, " Input-Output Table, ", d$year[1]),
       subtitle = paste0("Intermediate transactions between industries ",
                         "(current prices, $ million). Circle area = value",
                         if (!per_year_scale) "; same scale for all years." else "."),
       x = "Purchasing industry (column)",
       y = "Supplying industry (row)",
-      caption = "Source: ADB, Viet Nam Input-Output Tables (as of June 2023)"
+      caption = paste0("Source: ADB, ", country, " Input-Output Tables (as of June 2023)")
     ) +
     theme_minimal(base_size = 10) +
     theme(
@@ -106,13 +113,13 @@ plots <- lapply(split(io, io$year), plot_year)
 
 for (p in plots) {
   yr <- p$data$year[1]
-  ggsave(file.path(out_dir, paste0("io_bubble_", yr, ".png")), p,
+  ggsave(file.path(out_dir, paste0(file_prefix, yr, ".png")), p,
          width = 13, height = 12, dpi = 150)
 }
 
 # All years in one PDF, one page per year.
-pdf(file.path(out_dir, "io_bubble_all_years.pdf"), width = 13, height = 12)
+pdf(file.path(out_dir, paste0(file_prefix, "all_years.pdf")), width = 13, height = 12)
 invisible(lapply(plots, print))
 invisible(dev.off())
 
-message("Wrote ", length(plots), " charts to ", normalizePath(out_dir))
+message("Wrote ", length(plots), " ", country, " charts to ", normalizePath(out_dir))
