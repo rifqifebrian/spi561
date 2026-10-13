@@ -59,6 +59,8 @@ country's exports for the same year and are not computed.
 `scripts/wdi_line_charts.py` turns World Bank WDI indicator downloads into an
 interactive HTML page with one line chart per file, sharing a year axis and
 one color per country (hover for values, year-range filter, data tables).
+Each chart has PNG and CSV download buttons, and "All data (CSV)" saves every
+indicator for the selected year range in one long-format file.
 
 ```
 python3 scripts/wdi_line_charts.py \

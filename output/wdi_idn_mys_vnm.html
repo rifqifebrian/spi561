@@ -60,6 +60,14 @@ table { border-collapse: collapse; font-size: 12px; min-width: 100% }
 th, td { padding: 4px 10px; border-bottom: 1px solid var(--grid); text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap }
 th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-weight: 500 }
 th:first-child, td:first-child { text-align: left }
+.head { display: flex; justify-content: space-between; align-items: start; gap: 8px 16px; flex-wrap: wrap }
+.dl { display: flex; gap: 4px; flex-wrap: wrap }
+.dl button, .bar .all { font: 500 12px/1 var(--body); color: var(--ink-2); background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center }
+.dl button:hover, .bar .all:hover { color: var(--ink); border-color: var(--ink-2) }
+.dl svg, .bar .all svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2 }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 13px; z-index: 20 }
+#exporter { position: absolute; left: -10000px; top: 0; width: 1000px; height: 380px }
 .note { font-size: 13px; color: var(--ink-2); max-width: 75ch; border-top: 1px solid var(--grid); padding-top: 14px }
 .note p { margin: 0 0 8px }
 </style>
@@ -71,11 +79,16 @@ th:first-child, td:first-child { text-align: left }
   </header>
   <div class="bar">
     <div class="legend" id="legend"></div>
-    <div class="range" id="range" role="group" aria-label="Year range"></div>
+    <div class="tools">
+      <div class="range" id="range" role="group" aria-label="Year range"></div>
+      <button class="all" id="dl-all" data-dl><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>All data (CSV)</button>
+    </div>
   </div>
   <div id="charts" style="display:grid;gap:18px"></div>
   <div class="note" id="note"></div>
 </div>
+<div class="plot" id="exporter" aria-hidden="true"></div>
+<div id="toast" role="status" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
@@ -107,12 +120,14 @@ function renderRange() {
   rangeEl.querySelectorAll("button").forEach((b, i) => b.onclick = () => { range = RANGES[i]; renderRange(); drawAll(); });
 }
 
+const ICON = document.getElementById("dl-all").querySelector("svg").outerHTML;
 const host = document.getElementById("charts");
 const views = DATA.charts.map((c, ci) => {
   const el = document.createElement("section");
   el.className = "chart";
   const latest = c.series.map((s, i) => { const p = s.points[s.points.length - 1]; return p ? `${countries[i].name} ${fmts[c.fmt](p[1])} (${p[0]})` : null; }).filter(Boolean).join(" · ");
-  el.innerHTML = `<h2>${c.title}<span>${c.unit}</span></h2><p class="sub">Latest: ${latest}</p>` +
+  el.innerHTML = `<div class="head"><h2>${c.title}<span>${c.unit}</span></h2><div class="dl">` +
+    `<button data-dl data-png="${ci}" id="png-${ci}">${ICON}PNG</button><button data-dl data-csv="${ci}" id="csv-${ci}">${ICON}CSV</button></div></div><p class="sub">Latest: ${latest}</p>` +
     `<div class="plot" id="plot-${ci}" role="img" aria-label="${c.title}, ${c.unit}, line chart by country"></div>` +
     `<details><summary>Data table</summary><div class="tablewrap"><table id="table-${ci}"></table></div></details>`;
   host.appendChild(el);
@@ -177,6 +192,86 @@ function drawAll() { views.forEach(draw); }
 document.getElementById("note").innerHTML =
   `<p><strong>Source.</strong> World Bank, World Development Indicators: ` + DATA.charts.map(c => `${c.indicator} (${c.code})`).join("; ") + `. Blank years are missing in the source and appear as gaps.</p>` +
   `<p>FDI is net inflows from the balance of payments, so a year can be negative when foreign investors withdraw more than they put in.</p>`;
+
+// Downloads: chart images (PNG) and data (CSV) for the selected year range.
+const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+const codes = countries.map(c => c.code.toLowerCase()).join("_");
+const csvCell = v => /[",\n]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+function chartCSV(c) {
+  const years = d3.range(range[0], range[1] + 1);
+  const rows = [["Year", ...c.series.map(s => `${s.name} - ${c.indicator}`)]];
+  years.forEach(yr => {
+    const vals = c.series.map(s => { const p = s.points.find(p => p[0] === yr); return p ? p[1] : ""; });
+    if (vals.some(v => v !== "")) rows.push([yr, ...vals]);
+  });
+  return rows.map(r => r.map(csvCell).join(",")).join("\n") + "\n";
+}
+function allCSV() {
+  const rows = [["Country", "Country code", "Year", ...DATA.charts.map(c => `${c.indicator} [${c.code}]`)]];
+  countries.forEach((k, i) => d3.range(range[0], range[1] + 1).forEach(yr => {
+    const vals = DATA.charts.map(c => { const p = c.series[i].points.find(p => p[0] === yr); return p ? p[1] : ""; });
+    if (vals.some(v => v !== "")) rows.push([k.name, k.code, yr, ...vals]);
+  }));
+  return rows.map(r => r.map(csvCell).join(",")).join("\n") + "\n";
+}
+// Render the chart at a fixed 1000px width in the light palette, with title, legend and source, then rasterize at 2x.
+async function chartPNG(ci) {
+  const c = DATA.charts[ci], root = document.documentElement, prev = root.getAttribute("data-theme");
+  root.setAttribute("data-theme", "light");
+  try {
+    const box = document.getElementById("exporter");
+    draw({c, plot: box, table: document.createElement("table")});
+    const src = box.querySelector("svg"), clone = src.cloneNode(true);
+    const a = src.querySelectorAll("*"), b = clone.querySelectorAll("*");
+    a.forEach((el, k) => { const cs = getComputedStyle(el);
+      ["fill", "stroke", "stroke-width", "font-size", "font-weight", "visibility"].forEach(p => b[k].style.setProperty(p, cs.getPropertyValue(p)));
+      b[k].style.setProperty("font-family", "Helvetica, Arial, sans-serif"); });
+    const css = getComputedStyle(root), col = v => css.getPropertyValue(v).trim();
+    const W = 1000, top = 88, H = 380, bottom = 34, ns = "http://www.w3.org/2000/svg";
+    const out = document.createElementNS(ns, "svg");
+    out.setAttribute("xmlns", ns); out.setAttribute("width", W + 48); out.setAttribute("height", top + H + bottom);
+    const esc = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    const legend = countries.map((k, i) => `<rect x="${24 + i * 150}" y="62" width="18" height="3" rx="1.5" fill="${col(COLORS[i])}"/><text x="${48 + i * 150}" y="67" font-size="13" fill="${col("--ink-2")}">${esc(k.name)}</text>`).join("");
+    out.innerHTML = `<rect width="100%" height="100%" fill="${col("--surface")}"/><g font-family="Helvetica, Arial, sans-serif">` +
+      `<text x="24" y="34" font-size="20" font-weight="700" fill="${col("--ink")}">${esc(c.title)}<tspan font-size="14" font-weight="400" fill="${col("--muted")}"> · ${esc(c.unit)}, ${range[0]}–${range[1]}</tspan></text>${legend}` +
+      `<text x="24" y="${top + H + 22}" font-size="11" fill="${col("--muted")}">Source: World Bank, World Development Indicators (${esc(c.code)})</text></g>`;
+    const g = document.createElementNS(ns, "g"); g.setAttribute("transform", `translate(24,${top})`);
+    [...clone.childNodes].forEach(n => g.appendChild(n)); out.appendChild(g);
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(out)], {type: "image/svg+xml"}));
+    const img = new Image(); img.src = url; await img.decode();
+    const cv = document.createElement("canvas"); cv.width = (W + 48) * 2; cv.height = (top + H + bottom) * 2;
+    const ctx = cv.getContext("2d"); ctx.scale(2, 2); ctx.drawImage(img, 0, 0); URL.revokeObjectURL(url);
+    box.innerHTML = "";
+    return await new Promise(r => cv.toBlob(r, "image/png"));
+  } finally { prev == null ? root.removeAttribute("data-theme") : root.setAttribute("data-theme", prev); }
+}
+const toastEl = document.getElementById("toast"); let tt;
+function toast(msg) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(() => toastEl.hidden = true, 3000); }
+// In the claude.ai viewer saves go through the downloads capability; opened directly in a browser, a plain link works.
+const dlReady = window.claude?.use ? claude.use("downloads") : Promise.resolve(undefined);
+dlReady.then(d => { if (d === null) document.querySelectorAll("[data-dl]").forEach(b => b.hidden = true); });
+async function save(filename, data) {
+  const downloads = await dlReady;
+  if (downloads) {
+    try { await downloads.save({filename, data}); }
+    catch (e) {
+      if (e.code === "declined") return;
+      toast(e.code === "rate_limited" ? "A download is already waiting for your answer." : "This view can't save files. Open the page in claude.ai to download.");
+    }
+    return;
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-dl]"); if (!b) return;
+  const tag = `${codes}_${range[0]}_${range[1]}`;
+  if (b.id === "dl-all") return save(`wdi_${tag}.csv`, allCSV());
+  if (b.dataset.csv) { const c = DATA.charts[+b.dataset.csv]; return save(`${slug(c.title + " " + c.unit)}_${tag}.csv`, chartCSV(c)); }
+  const c = DATA.charts[+b.dataset.png];
+  try { save(`${slug(c.title + " " + c.unit)}_${tag}.png`, await chartPNG(+b.dataset.png)); }
+  catch { toast("Couldn't draw the image. Try again."); }
+});
 
 renderRange();
 drawAll();
