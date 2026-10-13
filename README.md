@@ -35,3 +35,21 @@ and a long-format CSV, prefixed with the country (e.g.
 scale; `--shared-scale` puts every country and year on one scale (to compare
 countries), and `--per-year-scale` scales each chart to its own maximum.
 Requires the `readxl` and `ggplot2` R packages.
+
+## Export basket treemap (Atlas of Economic Complexity style)
+
+`scripts/export_treemap.py` turns a UN Comtrade export download (one reporter,
+one year, partner = World, HS at 2/4/6 digits) into a self-contained
+interactive HTML page in the style of the Harvard Atlas of Economic
+Complexity: a treemap of exports by HS4 product grouped into sectors (click a
+sector to see its HS6 products), sector shares, concentration figures and the
+top 20 HS6 products. The page template is `scripts/export_treemap_template.html`.
+
+```
+python3 scripts/export_treemap.py data/comtrade_malaysia_exports_1989_hs6.csv \
+  --out output/malaysia_exports_1989.html
+```
+
+`data/comtrade_malaysia_exports_1989_hs6.csv` holds Malaysia's 1989 exports
+(HS 1992). Complexity indices (ECI, PCI, RCA, product space) need every
+country's exports for the same year and are not computed.

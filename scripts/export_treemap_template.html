@@ -1,0 +1,227 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What __COUNTRY__ Exported, __YEAR__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column; headline figures, then the treemap as the hero, then sector shares and a product table. */
+:root {
+  --bg: #f7f8f6; --surface: #fdfdfc; --ink: #101412; --ink-2: #4c524f; --muted: #7e8582;
+  --rule: #dfe3e0; --border: rgba(16,20,18,.12); --focus: #2a78d6;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; --s0: #9a9f9c;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1211; --surface: #181b1a; --ink: #eef0ee; --ink-2: #c0c5c2; --muted: #8b918e;
+  --rule: #2b302e; --border: rgba(255,255,255,.12); --focus: #6da7ec;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; --s0: #6c716e;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1211; --surface: #181b1a; --ink: #eef0ee; --ink-2: #c0c5c2; --muted: #8b918e;
+  --rule: #2b302e; --border: rgba(255,255,255,.12); --focus: #6da7ec;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; --s0: #6c716e;
+  color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); margin: 0 }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; gap: 28px }
+@media (min-width: 720px) { .wrap { padding-inline: 32px } }
+header { display: grid; gap: 6px }
+.eyebrow { font: 500 12px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+h1 { font: 800 clamp(30px, 5vw, 52px)/1.02 var(--display); font-stretch: 78%; margin: 0; text-wrap: balance; letter-spacing: -.01em }
+h2 { font: 700 22px/1.2 var(--display); font-stretch: 85%; margin: 0 }
+.lede { max-width: 66ch; color: var(--ink-2); margin: 4px 0 0 }
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule); border-block: 1px solid var(--rule) }
+.fig { background: var(--bg); padding: 12px 14px 12px 0; display: grid; gap: 2px }
+.fig b { font: 700 28px/1.1 var(--display); font-stretch: 85% }
+.fig span { font-size: 13px; color: var(--ink-2) }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.chip { font: 500 13px/1 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 7px 11px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer }
+.chip:hover { border-color: var(--ink-2) }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.chip i { width: 10px; height: 10px; border-radius: 3px; display: inline-block }
+.chip em { font: 400 12px var(--mono); font-style: normal; opacity: .75 }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+.mapcard { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px }
+.crumb { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--ink-2) }
+.crumb strong { color: var(--ink) }
+#map { position: relative; width: 100%; height: clamp(380px, 62vw, 640px); overflow: hidden; border-radius: 4px; background: var(--surface) }
+.tile { position: absolute; border-radius: 3px; overflow: hidden; padding: 5px 6px; cursor: pointer; transition: filter .12s; outline-offset: -2px }
+.tile:hover, .tile:focus-visible { filter: brightness(1.08) saturate(1.05) }
+.tile .t { font: 600 12px/1.2 var(--body); display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden }
+.tile .p { font: 500 11px/1.2 var(--mono); opacity: .85; margin-top: 2px }
+.tile.big .t { font-size: 14px }
+.tile.big .p { font-size: 13px }
+#tip { position: fixed; z-index: 10; pointer-events: none; max-width: 320px; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18); font-size: 13px; line-height: 1.4 }
+#tip .code { font: 500 11px var(--mono); color: var(--muted) }
+#tip .v { font: 600 15px var(--mono); margin-top: 4px }
+#tip ul { margin: 6px 0 0; padding: 6px 0 0; list-style: none; border-top: 1px solid var(--rule); display: grid; gap: 3px }
+#tip li { display: flex; justify-content: space-between; gap: 10px; color: var(--ink-2); font-size: 12px }
+#tip li span:last-child { font-family: var(--mono); white-space: nowrap }
+.two { display: grid; gap: 28px }
+@media (min-width: 900px) { .two { grid-template-columns: 5fr 7fr; align-items: start } }
+section { display: grid; gap: 12px; min-width: 0 }
+.bars { display: grid; gap: 9px }
+.bar { display: grid; grid-template-columns: minmax(120px, 190px) 1fr 52px; gap: 10px; align-items: center; font-size: 13px }
+.bar .track { height: 14px; border-bottom: 1px solid var(--rule) }
+.bar .fill { height: 100%; border-radius: 0 4px 4px 0 }
+.bar .num { font: 500 12px var(--mono); text-align: right; font-variant-numeric: tabular-nums }
+.tablewrap { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: 13px }
+th { text-align: left; font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--rule) }
+td { padding: 7px 8px; border-bottom: 1px solid var(--rule); vertical-align: top }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap }
+td.code { font-family: var(--mono); color: var(--ink-2); white-space: nowrap }
+td .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px }
+.desc { min-width: 220px }
+.note { font-size: 13px; color: var(--ink-2); max-width: 75ch; border-top: 1px solid var(--rule); padding-top: 14px }
+.note p { margin: 0 0 8px }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1>What __COUNTRY__ exported in __YEAR__</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <div class="figs" id="figs"></div>
+
+  <div class="mapcard">
+    <div class="controls" id="chips" role="group" aria-label="Show sector"></div>
+    <div class="crumb"><span id="crumb"></span><span id="hint">Tile area = export value. Click a tile to open its sector at HS6 detail.</span></div>
+    <div id="map" role="img" aria-label="Treemap of export value by product"></div>
+  </div>
+
+  <div class="two">
+    <section>
+      <h2>Share by sector</h2>
+      <div class="bars" id="bars"></div>
+    </section>
+    <section>
+      <h2>Top 20 products (HS6)</h2>
+      <div class="tablewrap"><table id="top"></table></div>
+    </section>
+  </div>
+
+  <div class="note" id="note"></div>
+</div>
+<div id="tip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const DATA = __DATA__;
+const M = DATA.meta;
+const css = getComputedStyle(document.documentElement);
+const SLOT = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+const sectorVar = {};
+DATA.tree.forEach((s, i) => { sectorVar[s.n] = s.n === "Other" ? "--s0" : SLOT[i % 8]; });
+const cv = n => `var(${sectorVar[n]})`;
+const col = n => css.getPropertyValue(sectorVar[n]).trim();
+DATA.tree.forEach(s => { s.v = d3.sum(s.k, h => h.v); });
+
+const usd = v => v >= 1e9 ? "$" + (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + (v / 1e3).toFixed(0) + "K";
+const pct = v => { const p = v / M.total * 100; return (p >= 10 ? p.toFixed(1) : p >= 0.1 ? p.toFixed(2) : "<0.1") + "%"; };
+const short = n => n.replace(/\s*\(excluding[^)]*\)/g, "");
+function ink(hex) {
+  const c = d3.rgb(hex), L = [c.r, c.g, c.b].map(x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; });
+  const lum = .2126 * L[0] + .7152 * L[1] + .0722 * L[2];
+  return (lum + .05) / .05 > 1.05 / (lum + .05) ? "#0b0b0b" : "#ffffff";
+}
+
+// Header
+document.getElementById("eyebrow").textContent = `${M.iso} · ${M.year} · Exports to the world · HS ${M.classification === "H0" ? "1992" : M.classification}`;
+const topSector = [...DATA.tree].sort((a, b) => b.v - a.v);
+document.getElementById("lede").textContent =
+  `${M.country} sold ${usd(M.total)} of goods abroad in ${M.year}. ${topSector[0].n} (${pct(topSector[0].v)}), ` +
+  `${topSector[1].n.toLowerCase()} (${pct(topSector[1].v)}) and ${topSector[2].n.toLowerCase()} (${pct(topSector[2].v)}) ` +
+  `were the largest sectors: a resource economy with a fast-growing electronics assembly base.`;
+const allHS6 = DATA.tree.flatMap(s => s.k.flatMap(h => h.k.map(p => ({...p, s: s.n}))));
+allHS6.sort((a, b) => b.v - a.v);
+document.getElementById("figs").innerHTML = [
+  [usd(M.total), "Total goods exports"],
+  [M.nHS6.toLocaleString(), `HS6 products exported (${M.nHS4.toLocaleString()} HS4)`],
+  [(M.top10 * 100).toFixed(1) + "%", "Share of the 10 largest HS6 products"],
+  [Math.round(1 / M.hhi).toString(), "Effective number of products (1 / HHI)"],
+].map(([b, s]) => `<div class="fig"><b>${b}</b><span>${s}</span></div>`).join("");
+
+// Chips
+let focus = null;
+const chips = document.getElementById("chips");
+function renderChips() {
+  chips.innerHTML = `<button class="chip" id="chip-all" aria-pressed="${focus === null}">All sectors</button>` +
+    DATA.tree.map((s, i) => `<button class="chip" id="chip-${i}" data-s="${s.n}" aria-pressed="${focus === s.n}"><i style="background:${cv(s.n)}"></i>${s.n} <em>${pct(s.v)}</em></button>`).join("");
+  chips.querySelectorAll(".chip").forEach(b => b.onclick = () => setFocus(b.dataset.s || null));
+}
+function setFocus(s) { focus = s; renderChips(); draw(); }
+
+// Treemap
+const map = document.getElementById("map"), tip = document.getElementById("tip");
+function draw() {
+  const W = map.clientWidth, H = map.clientHeight;
+  let root, sub;
+  if (focus) {
+    const s = DATA.tree.find(t => t.n === focus);
+    root = d3.hierarchy({k: s.k.map(h => ({...h, s: s.n}))}, d => d.k).sum(d => d.k ? 0 : d.v);
+    sub = s;
+  } else {
+    root = d3.hierarchy({k: DATA.tree.map(s => ({n: s.n, k: s.k.map(h => ({n: h.n, c: h.c, v: h.v, s: s.n, top: h.k}))}))}, d => d.k).sum(d => d.k ? 0 : d.v);
+  }
+  root.sort((a, b) => b.value - a.value);
+  d3.treemap().size([W, H]).tile(d3.treemapSquarify.ratio(1.2)).paddingInner(2).paddingOuter(0).round(true)(root);
+  document.getElementById("crumb").innerHTML = focus
+    ? `<strong>${focus}</strong> · ${usd(sub.v)} · ${pct(sub.v)} of exports · HS6 products, grouped by HS4`
+    : `<strong>All exports</strong> · ${usd(M.total)} · HS4 products, grouped by sector`;
+  map.innerHTML = "";
+  root.leaves().forEach(d => {
+    const w = d.x1 - d.x0, h = d.y1 - d.y0, p = d.data, sector = p.s || d.parent.data.s;
+    const fill = col(sector), el = document.createElement("div");
+    el.className = "tile" + (w > 170 && h > 80 ? " big" : "");
+    Object.assign(el.style, {left: d.x0 + "px", top: d.y0 + "px", width: w + "px", height: h + "px", background: fill, color: ink(fill)});
+    el.tabIndex = w > 24 && h > 18 ? 0 : -1;
+    el.setAttribute("aria-label", `${p.c} ${p.n}: ${usd(p.v)}, ${pct(p.v)}`);
+    if (w > 54 && h > 30) {
+      const lines = Math.max(1, Math.floor((h - 26) / 15));
+      el.innerHTML = `<div class="t" style="-webkit-line-clamp:${lines}">${short(p.n)}</div><div class="p">${pct(p.v)}</div>`;
+    }
+    el.onmousemove = e => showTip(e.clientX, e.clientY, p, sector);
+    el.onmouseleave = el.onblur = () => { tip.hidden = true; };
+    el.onfocus = () => { const r = el.getBoundingClientRect(); showTip(r.left + 10, r.top + 10, p, sector); };
+    el.onclick = () => { if (!focus) setFocus(sector); };
+    el.onkeydown = e => { if ((e.key === "Enter" || e.key === " ") && !focus) { e.preventDefault(); setFocus(sector); } };
+    map.appendChild(el);
+  });
+}
+function showTip(x, y, p, sector) {
+  const kids = (p.top || []).slice(0, 4);
+  tip.innerHTML = `<div class="code">HS ${p.c} · ${sector}</div><div>${p.n}</div>` +
+    `<div class="v">${usd(p.v)} <span style="color:var(--muted);font-weight:400">· ${pct(p.v)} of exports</span></div>` +
+    (kids.length > 1 ? `<ul>${kids.map(k => `<li><span>${k.c} ${short(k.n).slice(0, 48)}${short(k.n).length > 48 ? "…" : ""}</span><span>${usd(k.v)}</span></li>`).join("")}</ul>` : "");
+  tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = Math.min(x + 14, innerWidth - tw - 8) + "px";
+  tip.style.top = (y + 14 + th > innerHeight ? y - th - 10 : y + 14) + "px";
+}
+
+// Sector bars
+const maxS = topSector[0].v;
+document.getElementById("bars").innerHTML = topSector.map(s =>
+  `<div class="bar"><span>${s.n}</span><div class="track"><div class="fill" style="width:${s.v / maxS * 100}%;background:${cv(s.n)}"></div></div><span class="num">${pct(s.v)}</span></div>`).join("");
+
+// Top products table
+document.getElementById("top").innerHTML =
+  `<thead><tr><th>HS6</th><th>Product</th><th class="n">Value</th><th class="n">Share</th></tr></thead><tbody>` +
+  allHS6.slice(0, 20).map(p => `<tr><td class="code">${p.c}</td><td class="desc"><span class="sw" style="background:${cv(p.s)}"></span>${short(p.n)}</td><td class="n">${usd(p.v)}</td><td class="n">${pct(p.v)}</td></tr>`).join("") + "</tbody>";
+
+document.getElementById("note").innerHTML =
+  `<p><strong>Source.</strong> UN Comtrade, ${M.country} reported exports to the world, ${M.year}, HS ${M.classification === "H0" ? "1992 (H0)" : M.classification} at 6 digits, current US$ (file ${M.source}). Sectors group HS chapters roughly the way the Harvard Atlas of Economic Complexity does; wood and paper are kept as their own sector.</p>` +
+  `<p><strong>What this does not show.</strong> Economic complexity measures (ECI, PCI, revealed comparative advantage and the product space) compare a country's basket with every other country's. They need world export data for ${M.year}, which this single-country file does not include.</p>`;
+
+renderChips();
+draw();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderChips(); draw(); });
+new MutationObserver(() => { renderChips(); draw(); }).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+</script>
