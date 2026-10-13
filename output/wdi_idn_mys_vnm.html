@@ -1,0 +1,184 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDP and FDI: Indonesia, Malaysia and Viet Nam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of three small-multiple line charts sharing a year axis; one range filter row above them. */
+:root {
+  --bg: #f7f8f6; --surface: #fdfdfc; --ink: #101412; --ink-2: #4c524f; --muted: #7e8582;
+  --grid: #e3e6e3; --axis: #c3c8c5; --border: rgba(16,20,18,.12); --focus: #2a78d6;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1211; --surface: #181b1a; --ink: #eef0ee; --ink-2: #c0c5c2; --muted: #8b918e;
+  --grid: #272b29; --axis: #3a3f3c; --border: rgba(255,255,255,.12); --focus: #6da7ec;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1211; --surface: #181b1a; --ink: #eef0ee; --ink-2: #c0c5c2; --muted: #8b918e;
+  --grid: #272b29; --axis: #3a3f3c; --border: rgba(255,255,255,.12); --focus: #6da7ec;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); margin: 0 }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; gap: 22px }
+@media (min-width: 720px) { .wrap { padding-inline: 32px } }
+header { display: grid; gap: 6px }
+.eyebrow { font: 500 12px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+h1 { font: 800 clamp(28px, 4.6vw, 46px)/1.04 var(--display); font-stretch: 78%; margin: 0; text-wrap: balance }
+h2 { font: 700 20px/1.2 var(--display); font-stretch: 85%; margin: 0 }
+h2 span { font: 400 13px var(--mono); color: var(--muted); margin-left: 6px; white-space: nowrap }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; border-bottom: 1px solid var(--grid) }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px }
+.legend span { display: inline-flex; align-items: center; gap: 7px }
+.legend i { width: 18px; height: 2px; border-radius: 2px; display: inline-block }
+.range { display: flex; gap: 4px; flex-wrap: wrap }
+.chip { font: 500 13px/1 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 7px 11px; cursor: pointer; font-variant-numeric: tabular-nums }
+.chip:hover { border-color: var(--ink-2) }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+.chart { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 14px 10px; display: grid; gap: 6px; min-width: 0 }
+.chart .sub { font-size: 13px; color: var(--ink-2); margin: 0 }
+.plot { position: relative; width: 100%; height: 300px }
+.plot svg { display: block; overflow: visible }
+.plot text { font: 11px var(--mono); fill: var(--muted); font-variant-numeric: tabular-nums }
+.plot .lab { font: 600 12px var(--body); fill: var(--ink) }
+.plot .zero { stroke: var(--axis) }
+.plot .gl { stroke: var(--grid) }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; box-shadow: 0 6px 20px rgba(0,0,0,.16); font-size: 12px; min-width: 170px; z-index: 3 }
+.tip b { font: 600 13px var(--mono); display: block; margin-bottom: 4px }
+.tip div { display: flex; justify-content: space-between; gap: 14px; align-items: center }
+.tip div span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2) }
+.tip div span:last-child { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.tip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block }
+details { font-size: 13px; color: var(--ink-2) }
+summary { cursor: pointer; width: max-content }
+.tablewrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 8px }
+table { border-collapse: collapse; font-size: 12px; min-width: 100% }
+th, td { padding: 4px 10px; border-bottom: 1px solid var(--grid); text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap }
+th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-weight: 500 }
+th:first-child, td:first-child { text-align: left }
+.note { font-size: 13px; color: var(--ink-2); max-width: 75ch; border-top: 1px solid var(--grid); padding-top: 14px }
+.note p { margin: 0 0 8px }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">World Development Indicators · World Bank</div>
+    <h1>Growth and foreign investment in Indonesia, Malaysia and Viet Nam</h1>
+  </header>
+  <div class="bar">
+    <div class="legend" id="legend"></div>
+    <div class="range" id="range" role="group" aria-label="Year range"></div>
+  </div>
+  <div id="charts" style="display:grid;gap:18px"></div>
+  <div class="note" id="note"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const DATA = {"charts":[{"indicator":"GDP per capita (current US$)","code":"NY.GDP.PCAP.CD","title":"GDP per capita","unit":"current US$","fmt":"usd","source":"wdi_gdp_per_capita_current_usd.csv","series":[{"code":"IDN","name":"Indonesia","points":[[1967,53.2051866988581],[1968,64.6547730642556],[1969,74.0988114128793],[1970,79.118823484002],[1971,78.5428393869752],[1972,90.1147549138956],[1973,129.886231088685],[1974,200.710984454591],[1975,231.060120618497],[1976,275.713167824796],[1977,330.670214101079],[1978,362.483779779007],[1979,353.424175826329],[1980,486.620172021155],[1981,560.830336032961],[1982,577.745632722784],[1983,507.682945653414],[1984,519.774063103241],[1985,511.400883618027],[1986,469.834241253429],[1987,437.60655039936],[1988,476.662483405818],[1989,524.143027322576],[1990,578.420121135382],[1991,624.387495384411],[1992,673.67103954742],[1993,817.395116417856],[1994,899.793982949817],[1995,1011.22614205568],[1996,1118.92133024129],[1997,1044.60674832472],[1998,454.877800792123],[1999,657.268934667018],[2000,763.711124950924],[2001,732.307093405708],[2002,881.002913569131],[2003,1043.2105838671],[2004,1126.84004447173],[2005,1238.21447629488],[2006,1558.31562847163],[2007,1823.21976255073],[2008,2124.55483920618],[2009,2218.48541852977],[2010,3065.68348377765],[2011,3579.46442466152],[2012,3632.27254030331],[2013,3566.60284506078],[2014,3441.06808464008],[2015,3288.22269725538],[2016,3521.46943457574],[2017,3798.88326174526],[2018,3860.95353090726],[2019,4106.94856160358],[2020,3853.70288774146],[2021,4287.17313995098],[2022,4730.83484836107],[2023,4876.2992959843],[2024,4925.43644992666],[2025,5059.62596411213]]},{"code":"MYS","name":"Malaysia","points":[[1960,240.847414554537],[1961,232.943768818315],[1962,238.836339180717],[1963,291.800006993807],[1964,302.933952345239],[1965,326.436007443045],[1966,338.570121454412],[1967,335.425630582949],[1968,342.444763417284],[1969,368.385655484736],[1970,379.626764270849],[1971,407.19672797331],[1972,472.363509449959],[1973,700.728626010603],[1974,847.806802570239],[1975,810.570999701272],[1976,940.437734141673],[1977,1091.70837095855],[1978,1326.88769798353],[1979,1679.87779419937],[1980,1886.12339323875],[1981,1866.10246831744],[1982,1937.74922725899],[1983,2124.29229106221],[1984,2299.80870816235],[1985,2045.57471772113],[1986,1759.73185736702],[1987,1977.1290866202],[1988,2099.95467656701],[1989,2243.60219599914],[1990,2468.69080320116],[1991,2679.20101106745],[1992,3141.43321987651],[1993,3461.99504214189],[1994,3757.65292858601],[1995,4363.14458333034],[1996,4837.16897250768],[1997,4678.56390058182],[1998,3294.30978444095],[1999,3527.81581379249],[2000,4083.52874483605],[2001,3943.79943910239],[2002,4184.03163773539],[2003,4465.32194567208],[2004,4939.24851854427],[2005,5555.58179951206],[2006,6158.40785533236],[2007,7168.93031942508],[2008,8371.82156086005],[2009,7191.43287234626],[2010,8899.34505544675],[2011,10217.1068585031],[2012,10600.5744240026],[2013,10713.6407638899],[2014,11013.3107334403],[2015,9648.6797937523],[2016,9476.53409809923],[2017,9862.54806612235],[2018,10901.8019954421],[2019,10920.191763972],[2020,9957.52626697613],[2021,10903.1037480772],[2022,11754.5678336248],[2023,11386.0395636528],[2024,11874.4273684245],[2025,13124.5554178269]]},{"code":"VNM","name":"Viet Nam","points":[[1985,238.647805313403],[1986,436.419296772225],[1987,595.247488701606],[1988,404.559305078888],[1989,98.1070172159577],[1990,98.7983370311401],[1991,143.715270231936],[1992,144.549392371677],[1993,189.418573584332],[1994,229.857787265757],[1995,287.802661028593],[1996,337.051231790277],[1997,361.643884085566],[1998,361.350928411167],[1999,375.994455900496],[2000,404.029784055118],[2001,419.205677580901],[2002,445.132861817313],[2003,497.117089249256],[2004,565.452284586212],[2005,710.746759994861],[2006,807.756645117054],[2007,925.640338348717],[2008,1163.83195772873],[2009,1226.16976051536],[2010,1683.16182443979],[2011,1950.92504174913],[2012,2185.11767654291],[2013,2359.51736472828],[2014,2546.38464459903],[2015,2577.56885340113],[2016,2735.0604380416],[2017,2956.10992127753],[2018,3222.31003125366],[2019,3440.90025375434],[2020,3534.03953482647],[2021,3704.1935590038],[2022,4147.69777213621],[2023,4322.82572261566],[2024,4716.6599379632],[2025,5065.99091899299]]}]},{"indicator":"Foreign direct investment, net inflows (BoP, current US$)","code":"BX.KLT.DINV.CD.WD","title":"Foreign direct investment, net inflows","unit":"current US$","fmt":"usd_big","source":"wdi_fdi_net_inflows_current_usd.csv","series":[{"code":"IDN","name":"Indonesia","points":[[1970,145380000.0],[1971,299069999.9],[1972,253520000.0],[1973,581000000.0],[1974,182120000.0],[1975,1292059999.9],[1976,747590000.0],[1977,235000000.0],[1978,417709999.9],[1979,226000000.0],[1980,180000000.0],[1981,133000000.0],[1982,225000000.0],[1983,292000000.0],[1984,222000000.0],[1985,310000000.0],[1986,258000000.0],[1987,385000000.0],[1988,576000000.0],[1989,682000000.0],[1990,1093000000.0],[1991,1482000000.0],[1992,1777000000.0],[1993,2004000000.0],[1994,2109000000.0],[1995,4346000000.0],[1996,6194000000.0],[1997,4677000000.0],[1998,-240800000.0],[1999,-1865620963.49086],[2000,-4550355285.71428],[2001,-2977391857.14286],[2002,145085548.722222],[2003,-596923827.786241],[2004,1896082770.0],[2005,8336257207.64285],[2006,4914201435.40071],[2007,6928480000.0],[2008,9318453649.82664],[2009,4877369178.4365],[2010,15292009410.5099],[2011,20564938226.7185],[2012,21200778607.8726],[2013,23281742361.5305],[2014,25120732059.5134],[2015,19779127976.9576],[2016,4541713739.23769],[2017,20510310832.4469],[2018,18909826043.5105],[2019,24993551748.0098],[2020,19175077747.8077],[2021,21213080329.8582],[2022,24702029705.0926],[2023,21543358781.3828],[2024,24275445280.2272],[2025,22698158405.2659]]},{"code":"MYS","name":"Malaysia","points":[[1970,94000000.0],[1971,100000000.0],[1972,114000000.0],[1973,172000000.0],[1974,570819254.595405],[1975,350491202.931934],[1976,381259652.112456],[1977,405885818.525049],[1978,499991004.965365],[1979,573467421.839787],[1980,933903976.260897],[1981,1264688331.16862],[1982,1397196045.41608],[1983,1260527733.35506],[1984,797476861.322828],[1985,694712466.229254],[1986,488874111.042602],[1987,422679709.984833],[1988,719418050.366902],[1989,1667871568.72095],[1990,2332455289.06141],[1991,3998448522.46006],[1992,5183358086.40238],[1993,5005642759.8826],[1994,4341800916.32296],[1995,4178239335.0381],[1996,5078414947.87738],[1997,5136514575.67472],[1998,2163401815.57572],[1999,3895263157.89473],[2000,3787631578.94736],[2001,553947368.421052],[2002,3192894736.8421],[2003,3218947368.42105],[2004,4376052631.57894],[2005,3924786634.73868],[2006,7690731245.66746],[2007,9071369834.83858],[2008,7572512432.33634],[2009,114664434.562281],[2010,10885801851.6194],[2011,15119439203.9543],[2012,8895774250.70401],[2013,11296279513.9209],[2014,10619431582.9781],[2015,9857162111.82329],[2016,13470089920.807],[2017,9368469822.66145],[2018,8304480741.65267],[2019,9154921685.03934],[2020,4058769678.64231],[2021,20245157326.8023],[2022,15027992710.6144],[2023,9652698628.79222],[2024,17724927818.1135],[2025,21618816971.2995]]},{"code":"VNM","name":"Viet Nam","points":[[1970,70000.0],[1971,1820000.0],[1972,-890000.0],[1973,1030000.0],[1974,1250000.0],[1975,4089999.9],[1976,-340000.0],[1977,-10000.0],[1978,463333.3],[1979,-60000.0],[1980,1666666.6],[1981,17910000.0],[1982,13050000.0],[1983,131111.1],[1984,690000.0],[1985,-80000.0],[1986,40000.0],[1987,10363703.7],[1988,7679999.9],[1989,4070000.0],[1990,180000000.0],[1991,375190278.0],[1992,473945856.0],[1993,926303715.0],[1994,1944515936.0],[1995,1780400000.0],[1996,2395000000.0],[1997,2220000000.0],[1998,1671000000.0],[1999,1412000000.0],[2000,1298000000.0],[2001,1300000000.0],[2002,1400000000.0],[2003,1450000000.0],[2004,1610000000.0],[2005,1954000000.0],[2006,2400000000.0],[2007,6700000000.0],[2008,9579000000.0],[2009,7600000000.0],[2010,8000000000.0],[2011,7430000000.0],[2012,8368000000.0],[2013,8900000000.0],[2014,9200000000.0],[2015,11800000000.0],[2016,12600000000.0],[2017,14100000000.0],[2018,15500000000.0],[2019,16120000000.0],[2020,15800000000.0],[2021,15660000000.0],[2022,17900000000.0],[2023,18500000000.0],[2024,20170000000.0],[2025,21990000000.0]]}]},{"indicator":"Foreign direct investment, net inflows (% of GDP)","code":"BX.KLT.DINV.WD.GD.ZS","title":"Foreign direct investment, net inflows","unit":"% of GDP","fmt":"pct","source":"wdi_fdi_net_inflows_pct_gdp.csv","series":[{"code":"IDN","name":"Indonesia","points":[[1970,1.58873353293413],[1971,3.20425172245555],[1972,2.30523225241017],[1973,3.57027571297421],[1974,0.705825550989914],[1975,4.24128851064663],[1976,2.00592143120381],[1977,0.513000573361318],[1978,0.811785370804867],[1979,0.439687121934464],[1980,0.248336362296103],[1981,0.155522389416403],[1982,0.249560636589718],[1983,0.360261287911682],[1984,0.261626776354664],[1985,0.36346800280403],[1986,0.322685251406443],[1987,0.507048517276106],[1988,0.683272607101238],[1989,0.722064256022232],[1990,1.02976494269192],[1991,1.2707722797342],[1992,1.38798883350104],[1993,1.26830064559013],[1994,1.1922519299764],[1995,2.15007984011937],[1996,2.72419788646708],[1997,2.16779685196237],[1998,-0.252290447660406],[1999,-1.33257354110795],[2000,-2.75743993350903],[2001,-1.85568619300523],[2002,0.0741516383181159],[2003,-0.254256320381005],[2004,0.738243979887563],[2005,2.91611483313067],[2006,1.34794264068931],[2007,1.6030105718879],[2008,1.82632902403998],[2009,0.90391941965406],[2010,2.02517914569356],[2011,2.30298429381592],[2012,2.30978031853073],[2013,2.55135633401058],[2014,2.81997260412102],[2015,2.29761639380441],[2016,0.487372471368879],[2017,2.01948919812582],[2018,1.81428979349441],[2019,2.23336204282241],[2020,1.81058402027127],[2021,1.7878556314554],[2022,1.87264100861425],[2023,1.57116966408747],[2024,1.73855290316368],[2025,1.57010859073407]]},{"code":"MYS","name":"Malaysia","points":[[1970,2.43262050891876],[1971,2.3560478579699],[1972,2.2604035443038],[1973,2.24458024889174],[1974,6.01102542086446],[1975,3.76920863765598],[1976,3.45024034295074],[1977,3.08905338613725],[1978,3.05653847627618],[1979,2.70334351108458],[1980,3.81368591872655],[1981,5.05788624278183],[1982,5.21254407721585],[1983,4.15365396776224],[1984,2.34946607947751],[1985,2.22666868667977],[1986,1.76271777377718],[1987,1.31343634347508],[1988,2.03962299468874],[1989,4.29333056736689],[1990,5.29807441993264],[1991,8.13632963600558],[1992,8.76047440214554],[1993,7.4828391233144],[1994,5.82961425798393],[1995,4.71024540158831],[1996,5.03534293107291],[1997,5.13624115805328],[1998,2.99775085201455],[1999,4.9214666648934],[2000,4.03842862393763],[2001,0.597029318252079],[2002,3.16612432250471],[2003,2.92094209456765],[2004,3.50787262049412],[2005,2.73438734940078],[2006,4.72716484834358],[2007,4.68684578287435],[2008,3.28081949125174],[2009,0.0566923160757435],[2010,4.26864663854031],[2011,5.07446032143377],[2012,2.82905738174529],[2013,3.49431175959971],[2014,3.14122940365348],[2015,3.27094402931735],[2016,4.47130958598651],[2017,2.9358203805856],[2018,2.31458721219734],[2019,2.50697705748044],[2020,1.20275464255821],[2021,5.41626377085161],[2022,3.68486215546291],[2023,2.41347984925108],[2024,4.19796166285417],[2025,4.57838449139551]]},{"code":"VNM","name":"Viet Nam","points":[[1985,-0.000567589726125444],[1986,0.00015187979966611],[1987,0.0282712448214878],[1988,0.030207899995773],[1989,0.0646719015911437],[1990,2.78132276010011],[1991,3.90279679984311],[1992,4.80334777518942],[1993,7.02759256453564],[1994,11.9394828341112],[1995,8.58596585460392],[1996,9.71308063712156],[1997,8.2700967582097],[1998,6.14121440264586],[1999,4.92266345680124],[2000,4.16392407955693],[2001,3.97733545270572],[2002,3.99268705133996],[2003,3.66601229989583],[2004,3.54408107288199],[2005,3.39040363930871],[2006,3.61600090432522],[2007,8.65471771434805],[2008,9.6630390545572],[2009,7.16881988884276],[2010,5.4347392933443],[2011,4.30487434902161],[2012,4.27832287681174],[2013,4.16454517277325],[2014,3.94086189051961],[2015,4.93190773329022],[2016,4.90089302916746],[2017,5.01148721749681],[2018,4.99828319622328],[2019,4.821074861051],[2020,4.55836196782424],[2021,4.27314566190187],[2022,4.32947308910883],[2023,4.26458856546888],[2024,4.23450755062236],[2025,4.27241480079657]]}]}]};
+const COLORS = ["--c1", "--c2", "--c3"];
+const countries = DATA.charts[0].series.map((s, i) => ({code: s.code, name: s.name, v: `var(${COLORS[i]})`}));
+const allYears = DATA.charts.flatMap(c => c.series.flatMap(s => s.points.map(p => p[0])));
+const Y0 = d3.min(allYears), Y1 = d3.max(allYears);
+const RANGES = [[Y0, Y1], [1985, Y1], [2000, Y1]].filter(r => r[0] >= Y0);
+let range = RANGES[0], hoverYear = null;
+
+const fmts = {
+  usd: v => "$" + d3.format(",.0f")(v),
+  usd_big: v => (v < 0 ? "−$" : "$") + (Math.abs(v) >= 1e9 ? d3.format(",.2f")(Math.abs(v) / 1e9) + "B" : d3.format(",.0f")(Math.abs(v) / 1e6) + "M"),
+  pct: v => d3.format(".2f")(v).replace("-", "−") + "%",
+  num: v => d3.format(",.2f")(v),
+};
+const ticks = {
+  usd: v => "$" + d3.format("~s")(v).replace("G", "B"),
+  usd_big: v => v === 0 ? "0" : (v < 0 ? "−$" : "$") + d3.format("~s")(Math.abs(v)).replace("G", "B"),
+  pct: v => d3.format("~r")(v).replace("-", "−") + "%",
+  num: v => d3.format("~s")(v),
+};
+
+document.getElementById("legend").innerHTML = countries.map(c => `<span><i style="background:${c.v}"></i>${c.name}</span>`).join("");
+const rangeEl = document.getElementById("range");
+function renderRange() {
+  rangeEl.innerHTML = RANGES.map((r, i) => `<button class="chip" id="range-${i}" aria-pressed="${r === range}">${r[0]}–${r[1]}</button>`).join("");
+  rangeEl.querySelectorAll("button").forEach((b, i) => b.onclick = () => { range = RANGES[i]; renderRange(); drawAll(); });
+}
+
+const host = document.getElementById("charts");
+const views = DATA.charts.map((c, ci) => {
+  const el = document.createElement("section");
+  el.className = "chart";
+  const latest = c.series.map((s, i) => { const p = s.points[s.points.length - 1]; return p ? `${countries[i].name} ${fmts[c.fmt](p[1])} (${p[0]})` : null; }).filter(Boolean).join(" · ");
+  el.innerHTML = `<h2>${c.title}<span>${c.unit}</span></h2><p class="sub">Latest: ${latest}</p>` +
+    `<div class="plot" id="plot-${ci}" role="img" aria-label="${c.title}, ${c.unit}, line chart by country"></div>` +
+    `<details><summary>Data table</summary><div class="tablewrap"><table id="table-${ci}"></table></div></details>`;
+  host.appendChild(el);
+  return {c, plot: el.querySelector(".plot"), table: el.querySelector("table")};
+});
+
+function draw(view) {
+  const {c, plot, table} = view;
+  const W = plot.clientWidth, H = plot.clientHeight, narrow = W < 560;
+  const m = {t: 10, r: narrow ? 74 : 96, b: 26, l: narrow ? 46 : 58};
+  const vis = c.series.map((s, i) => ({...s, i, pts: s.points.filter(p => p[0] >= range[0] && p[0] <= range[1])}));
+  const vals = vis.flatMap(s => s.pts.map(p => p[1]));
+  let lo = Math.min(0, d3.min(vals)), hi = d3.max(vals);
+  const x = d3.scaleLinear().domain(range).range([m.l, W - m.r]);
+  const y = d3.scaleLinear().domain([lo, hi]).nice(5).range([H - m.b, m.t]);
+  const svg = d3.select(plot).html("").append("svg").attr("width", W).attr("height", H);
+  svg.append("g").selectAll("line").data(y.ticks(5)).join("line").attr("class", d => d === 0 ? "zero" : "gl")
+    .attr("x1", m.l).attr("x2", W - m.r).attr("y1", d => y(d)).attr("y2", d => y(d)).attr("stroke-width", d => d === 0 ? 1.2 : 1);
+  svg.append("g").selectAll("text").data(y.ticks(5)).join("text").attr("x", m.l - 8).attr("y", d => y(d) + 4).attr("text-anchor", "end").text(ticks[c.fmt]);
+  const span = range[1] - range[0], step = span > 40 ? 10 : span > 20 ? 5 : 2;
+  const xt = d3.range(Math.ceil(range[0] / step) * step, range[1] + 1, step);
+  svg.append("g").selectAll("text").data(xt).join("text").attr("x", d => x(d)).attr("y", H - 6).attr("text-anchor", "middle").text(d => d);
+  const line = d3.line().defined(p => p != null).x(p => x(p[0])).y(p => y(p[1]));
+  // Break lines at missing years instead of bridging them.
+  const withGaps = pts => pts.flatMap((p, k) => k && p[0] - pts[k - 1][0] > 1 ? [null, p] : [p]);
+  svg.append("g").selectAll("path").data(vis).join("path").attr("fill", "none").attr("stroke", s => countries[s.i].v)
+    .attr("stroke-width", 2).attr("stroke-linejoin", "round").attr("stroke-linecap", "round").attr("d", s => line(withGaps(s.pts)));
+  // End markers and direct labels, nudged apart so they never overlap.
+  const ends = vis.filter(s => s.pts.length).map(s => { const p = s.pts[s.pts.length - 1]; return {s, p, ty: y(p[1])}; }).sort((a, b) => a.ty - b.ty);
+  for (let k = 1; k < ends.length; k++) if (ends[k].ty - ends[k - 1].ty < 15) ends[k].ty = ends[k - 1].ty + 15;
+  const over = ends.length ? ends[ends.length - 1].ty - (H - m.b) : 0;
+  if (over > 0) ends.forEach(e => e.ty -= over);
+  svg.append("g").selectAll("circle").data(ends).join("circle").attr("cx", e => x(e.p[0])).attr("cy", e => y(e.p[1])).attr("r", 4)
+    .attr("fill", e => countries[e.s.i].v).attr("stroke", "var(--surface)").attr("stroke-width", 2);
+  svg.append("g").selectAll("text").data(ends).join("text").attr("class", "lab").attr("x", e => x(e.p[0]) + 9).attr("y", e => e.ty + 4)
+    .text(e => narrow ? e.s.code : e.s.name);
+  // Hover layer: crosshair shared across all charts, tooltip on the hovered one.
+  const cross = svg.append("line").attr("y1", m.t).attr("y2", H - m.b).attr("stroke", "var(--muted)").attr("stroke-dasharray", "3 3").attr("visibility", "hidden");
+  const dots = svg.append("g");
+  const tip = d3.select(plot).append("div").attr("class", "tip").attr("hidden", true);
+  view.show = (yr, own) => {
+    if (yr == null || yr < range[0] || yr > range[1]) { cross.attr("visibility", "hidden"); dots.html(""); tip.attr("hidden", true); return; }
+    cross.attr("x1", x(yr)).attr("x2", x(yr)).attr("visibility", "visible");
+    const hits = vis.map(s => ({s, p: s.pts.find(p => p[0] === yr)}));
+    dots.selectAll("circle").data(hits.filter(h => h.p)).join("circle").attr("cx", h => x(yr)).attr("cy", h => y(h.p[1])).attr("r", 4)
+      .attr("fill", h => countries[h.s.i].v).attr("stroke", "var(--surface)").attr("stroke-width", 2);
+    if (!own) { tip.attr("hidden", true); return; }
+    tip.attr("hidden", null).html(`<b>${yr}</b>` + hits.map(h => `<div><span><i style="background:${countries[h.s.i].v}"></i>${countries[h.s.i].name}</span><span>${h.p ? fmts[c.fmt](h.p[1]) : "no data"}</span></div>`).join(""));
+    const tw = tip.node().offsetWidth, px = x(yr);
+    tip.style("left", (px + 14 + tw > W - m.r ? px - tw - 14 : px + 14) + "px").style("top", m.t + 4 + "px");
+  };
+  svg.append("rect").attr("x", m.l).attr("y", 0).attr("width", W - m.l - m.r + 8).attr("height", H).attr("fill", "transparent")
+    .on("pointermove", e => { const yr = Math.round(x.invert(d3.pointer(e)[0])); hoverYear = yr; views.forEach(v => v.show(yr, v === view)); })
+    .on("pointerleave", () => { hoverYear = null; views.forEach(v => v.show(null)); });
+  // Table view of the visible range.
+  const years = d3.range(range[0], range[1] + 1).filter(yr => vis.some(s => s.pts.some(p => p[0] === yr)));
+  table.innerHTML = `<thead><tr><th>Year</th>${vis.map(s => `<th>${s.name}</th>`).join("")}</tr></thead><tbody>` +
+    years.map(yr => `<tr><td>${yr}</td>${vis.map(s => { const p = s.pts.find(p => p[0] === yr); return `<td>${p ? fmts[c.fmt](p[1]) : "–"}</td>`; }).join("")}</tr>`).join("") + "</tbody>";
+}
+function drawAll() { views.forEach(draw); }
+
+document.getElementById("note").innerHTML =
+  `<p><strong>Source.</strong> World Bank, World Development Indicators: ` + DATA.charts.map(c => `${c.indicator} (${c.code})`).join("; ") + `. Blank years are missing in the source and appear as gaps.</p>` +
+  `<p>FDI is net inflows from the balance of payments, so a year can be negative when foreign investors withdraw more than they put in.</p>`;
+
+renderRange();
+drawAll();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+</script>

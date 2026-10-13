@@ -53,3 +53,21 @@ python3 scripts/export_treemap.py data/comtrade_malaysia_exports_1989_hs6.csv \
 `data/comtrade_malaysia_exports_1989_hs6.csv` holds Malaysia's 1989 exports
 (HS 1992). Complexity indices (ECI, PCI, RCA, product space) need every
 country's exports for the same year and are not computed.
+
+## GDP per capita and FDI line charts (Indonesia, Malaysia, Viet Nam)
+
+`scripts/wdi_line_charts.py` turns World Bank WDI indicator downloads into an
+interactive HTML page with one line chart per file, sharing a year axis and
+one color per country (hover for values, year-range filter, data tables).
+
+```
+python3 scripts/wdi_line_charts.py \
+  data/wdi_gdp_per_capita_current_usd.csv \
+  data/wdi_fdi_net_inflows_current_usd.csv \
+  data/wdi_fdi_net_inflows_pct_gdp.csv \
+  --countries IDN MYS VNM --out output/wdi_idn_mys_vnm.html
+```
+
+Indicators: GDP per capita (current US$, `NY.GDP.PCAP.CD`), FDI net inflows
+(BoP, current US$, `BX.KLT.DINV.CD.WD`) and FDI net inflows (% of GDP,
+`BX.KLT.DINV.WD.GD.ZS`). The page template is `scripts/wdi_line_charts_template.html`.

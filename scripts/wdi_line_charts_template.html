@@ -1,0 +1,184 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDP and FDI: __TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of three small-multiple line charts sharing a year axis; one range filter row above them. */
+:root {
+  --bg: #f7f8f6; --surface: #fdfdfc; --ink: #101412; --ink-2: #4c524f; --muted: #7e8582;
+  --grid: #e3e6e3; --axis: #c3c8c5; --border: rgba(16,20,18,.12); --focus: #2a78d6;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1211; --surface: #181b1a; --ink: #eef0ee; --ink-2: #c0c5c2; --muted: #8b918e;
+  --grid: #272b29; --axis: #3a3f3c; --border: rgba(255,255,255,.12); --focus: #6da7ec;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1211; --surface: #181b1a; --ink: #eef0ee; --ink-2: #c0c5c2; --muted: #8b918e;
+  --grid: #272b29; --axis: #3a3f3c; --border: rgba(255,255,255,.12); --focus: #6da7ec;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); margin: 0 }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; gap: 22px }
+@media (min-width: 720px) { .wrap { padding-inline: 32px } }
+header { display: grid; gap: 6px }
+.eyebrow { font: 500 12px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+h1 { font: 800 clamp(28px, 4.6vw, 46px)/1.04 var(--display); font-stretch: 78%; margin: 0; text-wrap: balance }
+h2 { font: 700 20px/1.2 var(--display); font-stretch: 85%; margin: 0 }
+h2 span { font: 400 13px var(--mono); color: var(--muted); margin-left: 6px; white-space: nowrap }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; border-bottom: 1px solid var(--grid) }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px }
+.legend span { display: inline-flex; align-items: center; gap: 7px }
+.legend i { width: 18px; height: 2px; border-radius: 2px; display: inline-block }
+.range { display: flex; gap: 4px; flex-wrap: wrap }
+.chip { font: 500 13px/1 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 7px 11px; cursor: pointer; font-variant-numeric: tabular-nums }
+.chip:hover { border-color: var(--ink-2) }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+.chart { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 14px 10px; display: grid; gap: 6px; min-width: 0 }
+.chart .sub { font-size: 13px; color: var(--ink-2); margin: 0 }
+.plot { position: relative; width: 100%; height: 300px }
+.plot svg { display: block; overflow: visible }
+.plot text { font: 11px var(--mono); fill: var(--muted); font-variant-numeric: tabular-nums }
+.plot .lab { font: 600 12px var(--body); fill: var(--ink) }
+.plot .zero { stroke: var(--axis) }
+.plot .gl { stroke: var(--grid) }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; box-shadow: 0 6px 20px rgba(0,0,0,.16); font-size: 12px; min-width: 170px; z-index: 3 }
+.tip b { font: 600 13px var(--mono); display: block; margin-bottom: 4px }
+.tip div { display: flex; justify-content: space-between; gap: 14px; align-items: center }
+.tip div span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2) }
+.tip div span:last-child { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.tip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block }
+details { font-size: 13px; color: var(--ink-2) }
+summary { cursor: pointer; width: max-content }
+.tablewrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 8px }
+table { border-collapse: collapse; font-size: 12px; min-width: 100% }
+th, td { padding: 4px 10px; border-bottom: 1px solid var(--grid); text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap }
+th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-weight: 500 }
+th:first-child, td:first-child { text-align: left }
+.note { font-size: 13px; color: var(--ink-2); max-width: 75ch; border-top: 1px solid var(--grid); padding-top: 14px }
+.note p { margin: 0 0 8px }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">World Development Indicators · World Bank</div>
+    <h1>Growth and foreign investment in __TITLE__</h1>
+  </header>
+  <div class="bar">
+    <div class="legend" id="legend"></div>
+    <div class="range" id="range" role="group" aria-label="Year range"></div>
+  </div>
+  <div id="charts" style="display:grid;gap:18px"></div>
+  <div class="note" id="note"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const DATA = __DATA__;
+const COLORS = ["--c1", "--c2", "--c3"];
+const countries = DATA.charts[0].series.map((s, i) => ({code: s.code, name: s.name, v: `var(${COLORS[i]})`}));
+const allYears = DATA.charts.flatMap(c => c.series.flatMap(s => s.points.map(p => p[0])));
+const Y0 = d3.min(allYears), Y1 = d3.max(allYears);
+const RANGES = [[Y0, Y1], [1985, Y1], [2000, Y1]].filter(r => r[0] >= Y0);
+let range = RANGES[0], hoverYear = null;
+
+const fmts = {
+  usd: v => "$" + d3.format(",.0f")(v),
+  usd_big: v => (v < 0 ? "−$" : "$") + (Math.abs(v) >= 1e9 ? d3.format(",.2f")(Math.abs(v) / 1e9) + "B" : d3.format(",.0f")(Math.abs(v) / 1e6) + "M"),
+  pct: v => d3.format(".2f")(v).replace("-", "−") + "%",
+  num: v => d3.format(",.2f")(v),
+};
+const ticks = {
+  usd: v => "$" + d3.format("~s")(v).replace("G", "B"),
+  usd_big: v => v === 0 ? "0" : (v < 0 ? "−$" : "$") + d3.format("~s")(Math.abs(v)).replace("G", "B"),
+  pct: v => d3.format("~r")(v).replace("-", "−") + "%",
+  num: v => d3.format("~s")(v),
+};
+
+document.getElementById("legend").innerHTML = countries.map(c => `<span><i style="background:${c.v}"></i>${c.name}</span>`).join("");
+const rangeEl = document.getElementById("range");
+function renderRange() {
+  rangeEl.innerHTML = RANGES.map((r, i) => `<button class="chip" id="range-${i}" aria-pressed="${r === range}">${r[0]}–${r[1]}</button>`).join("");
+  rangeEl.querySelectorAll("button").forEach((b, i) => b.onclick = () => { range = RANGES[i]; renderRange(); drawAll(); });
+}
+
+const host = document.getElementById("charts");
+const views = DATA.charts.map((c, ci) => {
+  const el = document.createElement("section");
+  el.className = "chart";
+  const latest = c.series.map((s, i) => { const p = s.points[s.points.length - 1]; return p ? `${countries[i].name} ${fmts[c.fmt](p[1])} (${p[0]})` : null; }).filter(Boolean).join(" · ");
+  el.innerHTML = `<h2>${c.title}<span>${c.unit}</span></h2><p class="sub">Latest: ${latest}</p>` +
+    `<div class="plot" id="plot-${ci}" role="img" aria-label="${c.title}, ${c.unit}, line chart by country"></div>` +
+    `<details><summary>Data table</summary><div class="tablewrap"><table id="table-${ci}"></table></div></details>`;
+  host.appendChild(el);
+  return {c, plot: el.querySelector(".plot"), table: el.querySelector("table")};
+});
+
+function draw(view) {
+  const {c, plot, table} = view;
+  const W = plot.clientWidth, H = plot.clientHeight, narrow = W < 560;
+  const m = {t: 10, r: narrow ? 74 : 96, b: 26, l: narrow ? 46 : 58};
+  const vis = c.series.map((s, i) => ({...s, i, pts: s.points.filter(p => p[0] >= range[0] && p[0] <= range[1])}));
+  const vals = vis.flatMap(s => s.pts.map(p => p[1]));
+  let lo = Math.min(0, d3.min(vals)), hi = d3.max(vals);
+  const x = d3.scaleLinear().domain(range).range([m.l, W - m.r]);
+  const y = d3.scaleLinear().domain([lo, hi]).nice(5).range([H - m.b, m.t]);
+  const svg = d3.select(plot).html("").append("svg").attr("width", W).attr("height", H);
+  svg.append("g").selectAll("line").data(y.ticks(5)).join("line").attr("class", d => d === 0 ? "zero" : "gl")
+    .attr("x1", m.l).attr("x2", W - m.r).attr("y1", d => y(d)).attr("y2", d => y(d)).attr("stroke-width", d => d === 0 ? 1.2 : 1);
+  svg.append("g").selectAll("text").data(y.ticks(5)).join("text").attr("x", m.l - 8).attr("y", d => y(d) + 4).attr("text-anchor", "end").text(ticks[c.fmt]);
+  const span = range[1] - range[0], step = span > 40 ? 10 : span > 20 ? 5 : 2;
+  const xt = d3.range(Math.ceil(range[0] / step) * step, range[1] + 1, step);
+  svg.append("g").selectAll("text").data(xt).join("text").attr("x", d => x(d)).attr("y", H - 6).attr("text-anchor", "middle").text(d => d);
+  const line = d3.line().defined(p => p != null).x(p => x(p[0])).y(p => y(p[1]));
+  // Break lines at missing years instead of bridging them.
+  const withGaps = pts => pts.flatMap((p, k) => k && p[0] - pts[k - 1][0] > 1 ? [null, p] : [p]);
+  svg.append("g").selectAll("path").data(vis).join("path").attr("fill", "none").attr("stroke", s => countries[s.i].v)
+    .attr("stroke-width", 2).attr("stroke-linejoin", "round").attr("stroke-linecap", "round").attr("d", s => line(withGaps(s.pts)));
+  // End markers and direct labels, nudged apart so they never overlap.
+  const ends = vis.filter(s => s.pts.length).map(s => { const p = s.pts[s.pts.length - 1]; return {s, p, ty: y(p[1])}; }).sort((a, b) => a.ty - b.ty);
+  for (let k = 1; k < ends.length; k++) if (ends[k].ty - ends[k - 1].ty < 15) ends[k].ty = ends[k - 1].ty + 15;
+  const over = ends.length ? ends[ends.length - 1].ty - (H - m.b) : 0;
+  if (over > 0) ends.forEach(e => e.ty -= over);
+  svg.append("g").selectAll("circle").data(ends).join("circle").attr("cx", e => x(e.p[0])).attr("cy", e => y(e.p[1])).attr("r", 4)
+    .attr("fill", e => countries[e.s.i].v).attr("stroke", "var(--surface)").attr("stroke-width", 2);
+  svg.append("g").selectAll("text").data(ends).join("text").attr("class", "lab").attr("x", e => x(e.p[0]) + 9).attr("y", e => e.ty + 4)
+    .text(e => narrow ? e.s.code : e.s.name);
+  // Hover layer: crosshair shared across all charts, tooltip on the hovered one.
+  const cross = svg.append("line").attr("y1", m.t).attr("y2", H - m.b).attr("stroke", "var(--muted)").attr("stroke-dasharray", "3 3").attr("visibility", "hidden");
+  const dots = svg.append("g");
+  const tip = d3.select(plot).append("div").attr("class", "tip").attr("hidden", true);
+  view.show = (yr, own) => {
+    if (yr == null || yr < range[0] || yr > range[1]) { cross.attr("visibility", "hidden"); dots.html(""); tip.attr("hidden", true); return; }
+    cross.attr("x1", x(yr)).attr("x2", x(yr)).attr("visibility", "visible");
+    const hits = vis.map(s => ({s, p: s.pts.find(p => p[0] === yr)}));
+    dots.selectAll("circle").data(hits.filter(h => h.p)).join("circle").attr("cx", h => x(yr)).attr("cy", h => y(h.p[1])).attr("r", 4)
+      .attr("fill", h => countries[h.s.i].v).attr("stroke", "var(--surface)").attr("stroke-width", 2);
+    if (!own) { tip.attr("hidden", true); return; }
+    tip.attr("hidden", null).html(`<b>${yr}</b>` + hits.map(h => `<div><span><i style="background:${countries[h.s.i].v}"></i>${countries[h.s.i].name}</span><span>${h.p ? fmts[c.fmt](h.p[1]) : "no data"}</span></div>`).join(""));
+    const tw = tip.node().offsetWidth, px = x(yr);
+    tip.style("left", (px + 14 + tw > W - m.r ? px - tw - 14 : px + 14) + "px").style("top", m.t + 4 + "px");
+  };
+  svg.append("rect").attr("x", m.l).attr("y", 0).attr("width", W - m.l - m.r + 8).attr("height", H).attr("fill", "transparent")
+    .on("pointermove", e => { const yr = Math.round(x.invert(d3.pointer(e)[0])); hoverYear = yr; views.forEach(v => v.show(yr, v === view)); })
+    .on("pointerleave", () => { hoverYear = null; views.forEach(v => v.show(null)); });
+  // Table view of the visible range.
+  const years = d3.range(range[0], range[1] + 1).filter(yr => vis.some(s => s.pts.some(p => p[0] === yr)));
+  table.innerHTML = `<thead><tr><th>Year</th>${vis.map(s => `<th>${s.name}</th>`).join("")}</tr></thead><tbody>` +
+    years.map(yr => `<tr><td>${yr}</td>${vis.map(s => { const p = s.pts.find(p => p[0] === yr); return `<td>${p ? fmts[c.fmt](p[1]) : "–"}</td>`; }).join("")}</tr>`).join("") + "</tbody>";
+}
+function drawAll() { views.forEach(draw); }
+
+document.getElementById("note").innerHTML =
+  `<p><strong>Source.</strong> World Bank, World Development Indicators: ` + DATA.charts.map(c => `${c.indicator} (${c.code})`).join("; ") + `. Blank years are missing in the source and appear as gaps.</p>` +
+  `<p>FDI is net inflows from the balance of payments, so a year can be negative when foreign investors withdraw more than they put in.</p>`;
+
+renderRange();
+drawAll();
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+</script>
