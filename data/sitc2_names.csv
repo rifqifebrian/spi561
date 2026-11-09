@@ -1,0 +1,80 @@
+code,name
+0,Food and live animals
+00,Live animals
+01,Meat and meat preparations
+02,Dairy products and birds' eggs
+03,"Fish, crustaceans and molluscs"
+04,Cereals and cereal preparations
+05,Vegetables and fruit
+06,"Sugar, sugar preparations and honey"
+07,"Coffee, tea, cocoa, spices"
+08,Animal feeding stuff
+09,Miscellaneous edible products
+1,Beverages and tobacco
+11,Beverages
+12,Tobacco and tobacco manufactures
+2,"Crude materials, inedible, except fuels"
+21,"Hides, skins and furskins, raw"
+22,Oil seeds and oleaginous fruit
+23,Crude rubber
+24,Cork and wood
+25,Pulp and waste paper
+26,Textile fibres
+27,Crude fertilizers and minerals
+28,Metalliferous ores and metal scrap
+29,Crude animal and vegetable materials n.e.s.
+3,"Mineral fuels, lubricants and related materials"
+32,"Coal, coke and briquettes"
+33,Petroleum and petroleum products
+34,"Gas, natural and manufactured"
+35,Electric current
+4,"Animal and vegetable oils, fats and waxes"
+41,Animal oils and fats
+42,Fixed vegetable oils and fats
+43,Processed animal and vegetable oils
+5,Chemicals and related products n.e.s.
+51,Organic chemicals
+52,Inorganic chemicals
+53,"Dyeing, tanning and colouring materials"
+54,Medicinal and pharmaceutical products
+55,"Essential oils, perfumes, cleansing preparations"
+56,"Fertilizers, manufactured"
+57,Explosives and pyrotechnic products
+58,Artificial resins and plastic materials
+59,Chemical materials n.e.s.
+6,Manufactured goods classified chiefly by material
+61,Leather and leather manufactures
+62,Rubber manufactures n.e.s.
+63,Cork and wood manufactures (excl. furniture)
+64,Paper and paperboard
+65,"Textile yarn, fabrics and made-up articles"
+66,Non-metallic mineral manufactures
+67,Iron and steel
+68,Non-ferrous metals
+69,Manufactures of metal n.e.s.
+7,Machinery and transport equipment
+71,Power-generating machinery
+72,Machinery specialized for particular industries
+73,Metalworking machinery
+74,General industrial machinery
+75,Office machines and computers
+76,Telecommunications and sound equipment
+77,Electrical machinery and appliances
+78,Road vehicles
+79,Other transport equipment
+8,Miscellaneous manufactured articles
+81,"Prefab buildings; plumbing, heating, lighting fixtures"
+82,Furniture and parts
+83,Travel goods and handbags
+84,Apparel and clothing accessories
+85,Footwear
+87,Professional and scientific instruments
+88,Photographic and optical goods; watches
+89,Miscellaneous manufactured articles n.e.s.
+9,Commodities and transactions n.e.s.
+91,Postal packages
+93,Special transactions n.e.s.
+94,"Animals n.e.s. (incl. zoo animals)"
+95,"Armoured vehicles, firearms and ammunition"
+96,"Coin (non-gold, non-legal tender)"
+97,"Gold, non-monetary"

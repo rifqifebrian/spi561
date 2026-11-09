@@ -53,3 +53,24 @@ python3 scripts/export_treemap.py data/comtrade_malaysia_exports_1989_hs6.csv \
 `data/comtrade_malaysia_exports_1989_hs6.csv` holds Malaysia's 1989 exports
 (HS 1992). Complexity indices (ECI, PCI, RCA, product space) need every
 country's exports for the same year and are not computed.
+
+## Export tables by SITC product (Malaysia, Indonesia, 1964-2024)
+
+`scripts/export_share_tables.R` reads `data/export_sitc2.csv` (Harvard Atlas
+of Economic Complexity, SITC Rev. 2 two-digit divisions) and writes LaTeX
+tables with, for every product and year, the export value (US$ million) and
+its share of the country's total goods exports. Divisions are grouped under
+their bold 1-digit SITC section with a subtotal; the last row is total
+exports. Each country gets one landscape `longtable` per block of about five
+years. Product names come from `data/sitc2_names.csv`.
+
+```
+Rscript scripts/export_share_tables.R
+cd output && pdflatex export_share_document.tex
+```
+
+`output/export_share_tables.tex` holds only the tables, so you can `\input`
+it into your own document (it needs `array`, `booktabs`, `longtable` and
+`pdflscape`). `output/export_share_document.tex` is a minimal wrapper that
+compiles them. Edit the settings at the top of the script to add Viet Nam or
+change the years. Requires the `dplyr`, `tidyr` and `readr` R packages.
