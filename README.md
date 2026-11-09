@@ -74,3 +74,20 @@ it into your own document (it needs `array`, `booktabs`, `longtable` and
 `pdflscape`). `output/export_share_document.tex` is a minimal wrapper that
 compiles them. Edit the settings at the top of the script to add Viet Nam or
 change the years. Requires the `dplyr`, `tidyr` and `readr` R packages.
+
+## Line charts by SITC section (Malaysia, 1964-2024)
+
+`scripts/export_section_lines.R` adds up the 2-digit divisions in
+`data/export_mys2.csv` into the ten 1-digit SITC sections and draws two
+small-multiple line charts, one panel per section:
+
+- `output/mys_sitc1_export_value.png/.pdf`: export value in US$ billion, each
+  panel on its own vertical scale;
+- `output/mys_sitc1_export_share.png/.pdf`: share of total exports, all panels
+  on the same scale, with the other nine sections in grey behind.
+
+```
+Rscript scripts/export_section_lines.R
+```
+
+Requires the `dplyr`, `readr`, `ggplot2` and `scales` R packages.
